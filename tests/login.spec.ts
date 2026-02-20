@@ -24,11 +24,12 @@ test('test', async ({ page }) => {
     return;
   }
   await loginPage.login(email, password);
+  //await page.pause(); // Pause to enter details manually (2FA, etc.); resume in the Playwright Inspector to continue
 
-  await dashboardPage.navigateToHomePage();
+  await dashboardPage.waitForHomePageReady();
   await dashboardPage.clickMaybeLaterIfPresent();
 
   await dashboardPage.keepSessionAlive();
 
-  await dashboardPage.verifyAnyBalanceVisible();
+  await dashboardPage.verifyPortfolioValuePresent();
 });

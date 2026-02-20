@@ -11,11 +11,41 @@ export class DashboardPage {
     this.page = page;
   }
 
+  /**
+   * Navigates to the home page URL. Use only when you need to open home directly (e.g. from a fresh tab).
+   * After login, prefer waitForHomePageReady() since the app already navigates to home.
+   */
   async navigateToHomePage() {
     const url = this.homePageUrl;
     if (!url) throw new Error('HOME_PAGE must be set.');
     await this.page.goto(url, { timeout: 60000, waitUntil: 'domcontentloaded' });
     await this.keepSessionAlive();
+  }
+
+  /**
+   * Waits for the home/dashboard page to be ready after login (no navigation).
+   * Uses the portfolio value element (data-testid="portfolio-value") so we target a single element
+   * and avoid strict-mode violations from getByText(regex) matching multiple nodes.
+   */
+  async waitForHomePageReady(timeoutMs = 15000) {
+    const container = this.page.getByTestId('portfolio-value');
+    await container.waitFor({ state: 'visible', timeout: timeoutMs });
+    await expect(container.locator('[role="status"], .sr-only').first()).toHaveText(/^[\d.,]+$/, { timeout: timeoutMs });
+    await this.keepSessionAlive();
+  }
+
+  /**
+   * Verifies that the dashboard portfolio value element shows a value in some currency.
+   * Asserts on the element with data-testid="portfolio-value" and its accessible value (sr-only / role=status).
+   */
+  async verifyPortfolioValuePresent(timeoutMs = 10000) {
+    const container = this.page.getByTestId('portfolio-value');
+    await expect(container).toBeVisible({ timeout: timeoutMs });
+    const value = (await container.locator('[role="status"], .sr-only').first().textContent() ?? '').trim();
+    const currency = (await container.locator('xpath=preceding-sibling::*[1]').first().textContent().catch(() => '') ?? '').trim();
+    const displayValue = currency && value ? `${currency}${value}` : value || '(empty)';
+    expect(value, `Portfolio value should be present (got: ${displayValue})`).toBeTruthy();
+    expect(value, `Portfolio value should be numeric (got: ${displayValue})`).toMatch(/^[\d.,]+$/);
   }
 
   /**
@@ -54,8 +84,9 @@ export class DashboardPage {
   /**
    * Verifies that some balance (any currency symbol + amount) is visible,
    * when the exact value is not known. Matches common formats like €375., $100, £50.00.
+   * Prefer verifyPortfolioValuePresent() to assert on the dashboard portfolio value element specifically.
    */
   async verifyAnyBalanceVisible() {
-    await expect(this.page.getByText(this.balancePattern)).toBeVisible();
+    await expect(this.page.getByText(this.balancePattern).first()).toBeVisible();
   }
 }
