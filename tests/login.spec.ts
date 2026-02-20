@@ -1,16 +1,18 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import { LoginPage } from './Pages/login';
+import { DashboardPage } from './Pages/dashboard';
 
 test('test', async ({ page }) => {
   test.setTimeout(90000); // External navigation + login can be slow; default 30s is too low
   const loginPage = new LoginPage(page);
+  const dashboardPage = new DashboardPage(page);
 
   await loginPage.navigateToMainPage();
   await loginPage.verifyLogInLinkIsVisible();
-  await loginPage.clickAcceptAllCookies();
+  await loginPage.clickAcceptAllCookiesIfPresent();
   await loginPage.clickLogInLink();
-  
-  await loginPage.navigateToLoginPage();
+  await loginPage.waitForLoginPageReady();
+
   await loginPage.verifyEmailInputIsVisible();
   await loginPage.verifyPasswordInputIsVisible();
   await loginPage.verifyContinueButtonIsVisible();
@@ -22,4 +24,11 @@ test('test', async ({ page }) => {
     return;
   }
   await loginPage.login(email, password);
+
+  await dashboardPage.navigateToHomePage();
+  await dashboardPage.clickMaybeLaterIfPresent();
+
+  await dashboardPage.keepSessionAlive();
+
+  await dashboardPage.verifyAnyBalanceVisible();
 });

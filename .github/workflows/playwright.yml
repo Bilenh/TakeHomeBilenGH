@@ -15,6 +15,7 @@ jobs:
       # Required by tests (set these in repo Settings → Secrets and variables → Actions):
       BASE_URL: ${{ secrets.BASE_URL }}
       LOGIN_URL: ${{ secrets.LOGIN_URL }}
+      HOME_PAGE: ${{ secrets.HOME_PAGE }}
       VALID_EMAIL: ${{ secrets.VALID_EMAIL }}
       VALID_PASSWORD: ${{ secrets.VALID_PASSWORD }}
 

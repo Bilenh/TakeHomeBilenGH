@@ -33,6 +33,15 @@ export class LoginPage {
     await this.page.waitForLoadState('domcontentloaded');
   }
 
+  /**
+   * Waits for the login form to be ready after clicking "Log in". Use this instead of
+   * navigateToLoginPage() when you navigated via the link to avoid a second goto that
+   * can abort the in-flight navigation (NS_BINDING_ABORTED).
+   */
+  async waitForLoginPageReady(timeoutMs = 15000) {
+    await expect(this.page.getByRole('textbox', { name: 'Email or username' })).toBeVisible({ timeout: timeoutMs });
+  }
+
   // Assertion methods
   async verifyLogInLinkIsVisible() {
     await expect(this.page.getByRole('link', { name: 'Log in' })).toBeVisible({ timeout: 10000 });
@@ -51,32 +60,59 @@ export class LoginPage {
   }
 
   // Action methods
-  async clickAcceptAllCookies() {
-    await this.page.getByRole('button', { name: 'Accept All Cookies' }).click();
+  /**
+   * Clicks "Accept All Cookies" only if the banner/button appears. Does nothing if not visible within the timeout.
+   */
+  async clickAcceptAllCookiesIfPresent(timeoutMs = 5000) {
+    const button = this.page.getByRole('button', { name: 'Accept All Cookies' });
+    try {
+      await button.waitFor({ state: 'visible', timeout: timeoutMs });
+      await button.click();
+    } catch {
+      // Cookie banner did not appear; continue without failing
+    }
   }
 
   async clickLogInLink() {
     await this.page.getByRole('link', { name: 'Log in' }).click();
   }
 
-  async fillEmail(email: string) {
-    await this.page.getByRole('textbox', { name: 'Email or username' }).fill(email);
+  private async delay(ms: number) {
+    await new Promise((r) => setTimeout(r, ms));
   }
 
-  async fillPassword(password: string) {
+  /** Human-like typing: click field, clear, then type character-by-character with delay. */
+  async fillEmail(email: string, options?: { typingDelayMs?: number }) {
+    const locator = this.page.getByRole('textbox', { name: 'Email or username' });
+    await locator.click();
+    await this.delay(100 + Math.random() * 150);
+    await locator.clear();
+    await locator.pressSequentially(email, { delay: options?.typingDelayMs ?? 80 });
+  }
+
+  async fillPassword(password: string, options?: { typingDelayMs?: number }) {
     if (password === undefined || password === null) {
       throw new Error('fillPassword: password is required (e.g. set TEST_PASSWORD env var).');
     }
-    await this.page.getByRole('textbox', { name: 'Password' }).fill(String(password));
+    const locator = this.page.getByRole('textbox', { name: 'Password' });
+    await locator.click();
+    await this.delay(100 + Math.random() * 150);
+    await locator.clear();
+    await locator.pressSequentially(String(password), { delay: options?.typingDelayMs ?? 80 });
   }
 
   async clickContinueButton() {
+    await this.delay(200 + Math.random() * 400);
     await this.page.getByRole('button', { name: 'Continue' }).click();
   }
 
-  // Combined action method for login
+  /**
+   * Login with human-like pacing: type character-by-character with delays,
+   * and short pauses between email, password, and submit.
+   */
   async login(email: string, password: string) {
     await this.fillEmail(email);
+    await this.delay(300 + Math.random() * 500);
     await this.fillPassword(password);
     await this.clickContinueButton();
   }
