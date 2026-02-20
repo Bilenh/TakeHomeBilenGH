@@ -26,7 +26,8 @@ export default defineConfig({
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    trace: 'on-first-retry',
+    // Trace is the main cause of large reports (several MB per retry). Off in CI to keep artifact size down.
+    trace: process.env.CI ? 'off' : 'on-first-retry',
     viewport: { width: 1920, height: 1080 },
     locale: 'en-GB',
     timezoneId: 'Europe/London',
